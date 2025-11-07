@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spot It Bot It - Online Game</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Spot It Bot It</h1>
+            <p class="subtitle">Find the matching object between two cards!</p>
+        </header>
+
+        <!-- Room Creation/Joining Screen -->
+        <div id="room-screen" class="screen active">
+            <div class="room-panel">
+                <h2>Create or Join a Room</h2>
+                
+                <div class="room-actions">
+                    <button id="create-room-btn" class="btn btn-primary">Create Room</button>
+                    <div class="divider">or</div>
+                    <div class="join-section">
+                        <input type="text" id="room-code-input" placeholder="Enter room code" maxlength="6" class="input">
+                        <button id="join-room-btn" class="btn btn-secondary">Join Room</button>
+                    </div>
+                </div>
+                
+                <div id="room-info" class="room-info hidden">
+                    <p><strong>Room Code:</strong> <span id="display-room-code"></span></p>
+                    <p>Share this code with your friend to join!</p>
+                    <p id="player-count">Waiting for players...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div class="game-header">
+                <div class="room-code-display">Room: <span id="current-room-code"></span></div>
+                <div class="scores">
+                    <div class="score-item">
+                        <span id="player1-name">Player 1</span>: <span id="player1-score">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span id="player2-name">Player 2</span>: <span id="player2-score">0</span>
+                    </div>
+                </div>
+                <div class="timer" id="timer">15</div>
+            </div>
+
+            <div id="game-controls" class="game-controls">
+                <button id="start-game-btn" class="btn btn-primary">Start Game</button>
+            </div>
+
+            <div id="game-content" class="game-content hidden">
+                <div class="cards-container">
+                    <div class="card" id="card1">
+                        <h3>Card 1</h3>
+                        <div class="symbols" id="symbols1"></div>
+                    </div>
+                    <div class="card" id="card2">
+                        <h3>Card 2</h3>
+                        <div class="symbols" id="symbols2"></div>
+                    </div>
+                </div>
+
+                <div class="guess-section">
+                    <input type="text" id="guess-input" placeholder="Type the matching object..." class="input guess-input">
+                    <button id="submit-guess-btn" class="btn btn-primary">Submit</button>
+                </div>
+
+                <div id="game-message" class="game-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/game.js"></script>
+</body>
+</html>
+
