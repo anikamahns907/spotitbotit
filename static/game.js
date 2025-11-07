@@ -11,12 +11,14 @@ class SpotItGame {
         this.playerName = null;
         this.gameState = null;
         this.timerInterval = null;
+        this.soloMode = false;
         
         this.initializeEventListeners();
     }
     
     initializeEventListeners() {
         // Room creation/joining
+        document.getElementById('play-solo-btn').addEventListener('click', () => this.playSolo());
         document.getElementById('create-room-btn').addEventListener('click', () => this.createRoom());
         document.getElementById('join-room-btn').addEventListener('click', () => this.joinRoom());
         document.getElementById('room-code-input').addEventListener('keypress', (e) => {
@@ -33,11 +35,25 @@ class SpotItGame {
         // Symbol click handlers (will be added dynamically)
     }
     
+    async playSolo() {
+        try {
+            const response = await fetch('/api/rooms/create?solo=true', { method: 'POST' });
+            const data = await response.json();
+            this.roomCode = data.room_code;
+            this.soloMode = true;
+            this.connectWebSocket();
+        } catch (error) {
+            console.error('Error starting solo game:', error);
+            this.showMessage('Error starting solo game. Please try again.', 'error');
+        }
+    }
+    
     async createRoom() {
         try {
             const response = await fetch('/api/rooms/create', { method: 'POST' });
             const data = await response.json();
             this.roomCode = data.room_code;
+            this.soloMode = false;
             this.connectWebSocket();
         } catch (error) {
             console.error('Error creating room:', error);
@@ -120,6 +136,10 @@ class SpotItGame {
                 this.showMessage(message.message, 'info');
                 break;
                 
+            case 'room_ready':
+                this.showMessage(message.message, 'info');
+                break;
+                
             case 'game_started':
                 this.gameState = message.state;
                 this.showGameScreen();
@@ -138,7 +158,10 @@ class SpotItGame {
                 this.gameState = message.state;
                 const winnerName = message.player_name;
                 const match = message.match;
-                if (this.playerId === message.player_id) {
+                if (message.solo_mode) {
+                    this.showMessage(`🎉 You found it! "${match}" - Great job! Score: ${this.gameState.scores[this.playerId] || 0}`, 'success');
+                    this.playSound('win');
+                } else if (this.playerId === message.player_id) {
                     this.showMessage(`🎉 You found it! "${match}" - You win this round!`, 'success');
                     this.playSound('win');
                 } else {
@@ -205,6 +228,12 @@ class SpotItGame {
         } else {
             startBtn.style.display = 'none';
         }
+        
+        // Update solo mode indicator
+        if (this.gameState.solo_mode) {
+            this.soloMode = true;
+            document.getElementById('solo-mode-indicator').classList.remove('hidden');
+        }
     }
     
     showGameScreen() {
@@ -212,6 +241,11 @@ class SpotItGame {
         document.getElementById('game-screen').classList.add('active');
         document.getElementById('current-room-code').textContent = this.roomCode;
         document.getElementById('game-content').classList.remove('hidden');
+        
+        // Show solo mode indicator if in solo mode
+        if (this.soloMode || (this.gameState && this.gameState.solo_mode)) {
+            document.getElementById('solo-mode-indicator').classList.remove('hidden');
+        }
     }
     
     startGame() {

@@ -93,6 +93,17 @@ header h1 {
     transform: translateY(-2px);
 }
 
+.btn-solo {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    font-size: 1.2em;
+}
+
+.btn-solo:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+}
+
 .input {
     padding: 12px;
     font-size: 1em;
@@ -185,6 +196,20 @@ header h1 {
 .game-controls {
     text-align: center;
     margin: 20px 0;
+}
+
+.solo-indicator {
+    margin-top: 15px;
+    padding: 10px;
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    border-radius: 8px;
+    color: #856404;
+    font-weight: bold;
+}
+
+.solo-indicator.hidden {
+    display: none;
 }
 
 .game-content {

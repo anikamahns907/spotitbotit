@@ -11,7 +11,7 @@ import string
 from typing import Dict, Set, Optional
 from datetime import datetime, timedelta
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -38,14 +38,16 @@ class GameRoom:
         self.round_duration = 15  # seconds
         self.game = None
         self.winner: Optional[str] = None  # player_id who found the match
+        self.solo_mode = False  # Single player mode
         
-    def add_player(self, player_id: str, websocket: WebSocket, player_name: str):
+    def add_player(self, player_id: str, websocket: WebSocket, player_name: str, solo_mode: bool = False):
         """Add a player to the room."""
-        if len(self.players) >= 2:
+        if not solo_mode and len(self.players) >= 2:
             raise ValueError("Room is full (max 2 players)")
         self.players[player_id] = websocket
         self.player_names[player_id] = player_name
         self.scores[player_id] = 0
+        self.solo_mode = solo_mode
     
     def remove_player(self, player_id: str):
         """Remove a player from the room."""
@@ -55,7 +57,9 @@ class GameRoom:
         self.current_cards.pop(player_id, None)
     
     def is_full(self) -> bool:
-        """Check if room has 2 players."""
+        """Check if room has 2 players (or ready for solo mode)."""
+        if self.solo_mode:
+            return len(self.players) >= 1
         return len(self.players) == 2
     
     def start_game(self):
@@ -118,7 +122,8 @@ class GameRoom:
             "round_timer": self.round_timer.isoformat() if self.round_timer else None,
             "round_duration": self.round_duration,
             "winner": self.winner,
-            "is_full": self.is_full()
+            "is_full": self.is_full(),
+            "solo_mode": self.solo_mode
         }
 
 
@@ -151,14 +156,17 @@ async def get_room_status(room_code: str):
 
 
 @app.post("/api/rooms/create")
-async def create_room():
+async def create_room(solo: bool = Query(False)):
     """Create a new game room."""
     room_code = generate_room_code()
     while room_code in rooms:
         room_code = generate_room_code()
     
-    rooms[room_code] = GameRoom(room_code)
-    return {"room_code": room_code}
+    room = GameRoom(room_code)
+    if solo:
+        room.solo_mode = True
+    rooms[room_code] = room
+    return {"room_code": room_code, "solo_mode": solo}
 
 
 @app.websocket("/ws/{room_code}")
@@ -176,11 +184,11 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
     
     # Generate player ID
     player_id = f"player_{len(room.players) + 1}"
-    player_name = f"Player {len(room.players) + 1}"
+    player_name = "Solo Player" if room.solo_mode else f"Player {len(room.players) + 1}"
     
     try:
         # Add player to room
-        room.add_player(player_id, websocket, player_name)
+        room.add_player(player_id, websocket, player_name, solo_mode=room.solo_mode)
         
         # Notify player of connection
         await websocket.send_json({
@@ -204,12 +212,18 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
             "state": room.get_state()
         })
         
-        # If room is full, notify both players
+        # If room is ready (full for multiplayer, or solo mode)
         if room.is_full():
-            await broadcast_to_room(room, {
-                "type": "room_full",
-                "message": "Both players connected! Ready to start."
-            })
+            if room.solo_mode:
+                await websocket.send_json({
+                    "type": "room_ready",
+                    "message": "Ready to play solo! Click Start Game."
+                })
+            else:
+                await broadcast_to_room(room, {
+                    "type": "room_full",
+                    "message": "Both players connected! Ready to start."
+                })
         
         # Main message loop
         while True:
@@ -231,21 +245,39 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
                     is_correct = room.check_match(player_id, guess)
                     if is_correct:
                         # Player found the match!
-                        await broadcast_to_room(room, {
-                            "type": "match_found",
-                            "player_id": player_id,
-                            "player_name": player_name,
-                            "match": room.current_match,
-                            "state": room.get_state()
-                        })
+                        if room.solo_mode:
+                            # Solo mode: just notify the player
+                            await websocket.send_json({
+                                "type": "match_found",
+                                "player_id": player_id,
+                                "player_name": player_name,
+                                "match": room.current_match,
+                                "state": room.get_state(),
+                                "solo_mode": True
+                            })
+                        else:
+                            # Multiplayer: broadcast to all
+                            await broadcast_to_room(room, {
+                                "type": "match_found",
+                                "player_id": player_id,
+                                "player_name": player_name,
+                                "match": room.current_match,
+                                "state": room.get_state()
+                            })
                         
                         # Wait a bit, then start next round
                         await asyncio.sleep(3)
                         room.start_round()
-                        await broadcast_to_room(room, {
-                            "type": "new_round",
-                            "state": room.get_state()
-                        })
+                        if room.solo_mode:
+                            await websocket.send_json({
+                                "type": "new_round",
+                                "state": room.get_state()
+                            })
+                        else:
+                            await broadcast_to_room(room, {
+                                "type": "new_round",
+                                "state": room.get_state()
+                            })
                     else:
                         # Wrong guess
                         await websocket.send_json({
