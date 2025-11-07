@@ -36,15 +36,20 @@ class SpotItGame {
     }
     
     async playSolo() {
+        console.log('Play Solo clicked');
         try {
             const response = await fetch('/api/rooms/create?solo=true', { method: 'POST' });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
+            console.log('Solo room created:', data);
             this.roomCode = data.room_code;
             this.soloMode = true;
             this.connectWebSocket();
         } catch (error) {
             console.error('Error starting solo game:', error);
-            this.showMessage('Error starting solo game. Please try again.', 'error');
+            alert('Error starting solo game: ' + error.message + '. Check console for details.');
         }
     }
     
@@ -86,7 +91,10 @@ class SpotItGame {
     }
     
     connectWebSocket() {
-        if (!this.roomCode) return;
+        if (!this.roomCode) {
+            console.error('No room code to connect to');
+            return;
+        }
         
         // Automatically use wss:// for HTTPS, ws:// for HTTP
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -96,7 +104,7 @@ class SpotItGame {
         this.ws = new WebSocket(wsUrl);
         
         this.ws.onopen = () => {
-            console.log('WebSocket connected');
+            console.log('WebSocket connected successfully');
         };
         
         this.ws.onmessage = (event) => {
@@ -106,12 +114,14 @@ class SpotItGame {
         
         this.ws.onerror = (error) => {
             console.error('WebSocket error:', error);
-            this.showMessage('Connection error. Please try again.', 'error');
+            alert('WebSocket connection error. Please check the console and try again.');
         };
         
-        this.ws.onclose = () => {
-            console.log('WebSocket disconnected');
-            this.showMessage('Connection lost. Please refresh the page.', 'error');
+        this.ws.onclose = (event) => {
+            console.log('WebSocket disconnected:', event.code, event.reason);
+            if (event.code !== 1000) { // Not a normal closure
+                alert('Connection lost. Please refresh the page.');
+            }
         };
     }
     
@@ -120,10 +130,16 @@ class SpotItGame {
         
         switch (message.type) {
             case 'connected':
+                console.log('Connected as:', message.player_name);
                 this.playerId = message.player_id;
                 this.playerName = message.player_name;
                 this.roomCode = message.room_code;
                 this.updateRoomInfo();
+                // For solo mode, automatically show ready message
+                if (this.soloMode) {
+                    document.getElementById('room-info').classList.remove('hidden');
+                    document.getElementById('player-count').textContent = 'Solo mode - Ready to play!';
+                }
                 break;
                 
             case 'player_joined':
@@ -137,7 +153,10 @@ class SpotItGame {
                 break;
                 
             case 'room_ready':
+                console.log('Room ready for solo mode');
                 this.showMessage(message.message, 'info');
+                // Show the start button for solo mode
+                document.getElementById('start-game-btn').style.display = 'block';
                 break;
                 
             case 'game_started':
