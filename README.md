@@ -69,3 +69,4 @@ The game uses a mathematical structure to ensure every pair of cards shares exac
 - **Sound Effects:** Replace the Web Audio API code in `static/game.js` with actual sound files
 - **Styling:** Customize colors and layout in `static/style.css`
 
+
