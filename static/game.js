@@ -18,19 +18,51 @@ class SpotItGame {
     
     initializeEventListeners() {
         // Room creation/joining
-        document.getElementById('play-solo-btn').addEventListener('click', () => this.playSolo());
-        document.getElementById('create-room-btn').addEventListener('click', () => this.createRoom());
-        document.getElementById('join-room-btn').addEventListener('click', () => this.joinRoom());
-        document.getElementById('room-code-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.joinRoom();
-        });
+        const playSoloBtn = document.getElementById('play-solo-btn');
+        if (playSoloBtn) {
+            playSoloBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Play Solo button clicked!');
+                this.playSolo();
+            });
+        } else {
+            console.error('Play Solo button not found in DOM!');
+        }
+        
+        const createRoomBtn = document.getElementById('create-room-btn');
+        if (createRoomBtn) {
+            createRoomBtn.addEventListener('click', () => this.createRoom());
+        }
+        
+        const joinRoomBtn = document.getElementById('join-room-btn');
+        if (joinRoomBtn) {
+            joinRoomBtn.addEventListener('click', () => this.joinRoom());
+        }
+        
+        const roomCodeInput = document.getElementById('room-code-input');
+        if (roomCodeInput) {
+            roomCodeInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.joinRoom();
+            });
+        }
         
         // Game controls
-        document.getElementById('start-game-btn').addEventListener('click', () => this.startGame());
-        document.getElementById('submit-guess-btn').addEventListener('click', () => this.submitGuess());
-        document.getElementById('guess-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.submitGuess();
-        });
+        const startGameBtn = document.getElementById('start-game-btn');
+        if (startGameBtn) {
+            startGameBtn.addEventListener('click', () => this.startGame());
+        }
+        
+        const submitGuessBtn = document.getElementById('submit-guess-btn');
+        if (submitGuessBtn) {
+            submitGuessBtn.addEventListener('click', () => this.submitGuess());
+        }
+        
+        const guessInput = document.getElementById('guess-input');
+        if (guessInput) {
+            guessInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.submitGuess();
+            });
+        }
         
         // Symbol click handlers (will be added dynamically)
     }
@@ -421,6 +453,23 @@ class SpotItGame {
 
 // Initialize game when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    window.game = new SpotItGame();
+    console.log('DOM loaded, initializing game...');
+    try {
+        window.game = new SpotItGame();
+        console.log('Game initialized successfully');
+        
+        // Double-check button exists
+        const playSoloBtn = document.getElementById('play-solo-btn');
+        if (playSoloBtn) {
+            console.log('Play Solo button found in DOM');
+            // Add a test click handler to verify it works
+            playSoloBtn.style.cursor = 'pointer';
+        } else {
+            console.error('ERROR: Play Solo button NOT found in DOM!');
+        }
+    } catch (error) {
+        console.error('Error initializing game:', error);
+        alert('Error initializing game: ' + error.message);
+    }
 });
 

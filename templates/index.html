@@ -19,7 +19,7 @@
                 <h2>Create or Join a Room</h2>
                 
                 <div class="room-actions">
-                    <button id="play-solo-btn" class="btn btn-solo">🎮 Play Solo</button>
+                    <button id="play-solo-btn" class="btn btn-solo" onclick="if(window.game) window.game.playSolo(); else console.error('Game not initialized'); return false;">🎮 Play Solo</button>
                     <div class="divider">or</div>
                     <button id="create-room-btn" class="btn btn-primary">Create Room (2 Players)</button>
                     <div class="divider">or</div>
